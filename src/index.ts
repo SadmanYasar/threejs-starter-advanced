@@ -76,11 +76,12 @@ if (process.env.DEBUG === "TRUE") {
     const gridFolder = gui.addFolder('Grid');
     gridFolder.add(GridHelperParams, 'size', 1, 10, 1).onChange(() => {
         if (tempSize !== GridHelperParams.size) {
-            gridHelper.scale.setScalar(GridHelperParams.size);
-            tempSize = GridHelperParams.size;
+            console.log(GridHelperParams.size / 10);
+            gridHelper.scale.setScalar(GridHelperParams.size / 10);
+            tempSize = GridHelperParams.size / 10;
         }
     });
-    gridFolder.add(GridHelperParams, 'divisions', 1, 10, 1);
+    // gridFolder.add(GridHelperParams, 'divisions', 1, 10, 1);
     
     const cubeFolder = gui.addFolder('Cube');
     cubeFolder.add(cube.rotation, 'x', 0, Math.PI * 2);
