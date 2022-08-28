@@ -2,6 +2,7 @@ import './styles/style.css';
 import {
     AxesHelper,
     BoxGeometry,
+    GridHelper,
     Mesh,
     MeshBasicMaterial,
     PerspectiveCamera,
@@ -12,6 +13,7 @@ import {
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import Stats from 'three/examples/jsm/libs/stats.module';
 import { GUI } from 'dat.gui';
+import { GridHelperParams } from './utils/defaults';
 
 const contendor = document.body;
 
@@ -66,12 +68,26 @@ if (process.env.DEBUG === "TRUE") {
     stats = Stats();
     document.body.appendChild(stats.dom);
 
+    const gridHelper = new GridHelper(GridHelperParams.size, GridHelperParams.divisions);
+    let tempSize: number = GridHelperParams.size;
+    scene.add(gridHelper);
+
     const gui = new GUI();
+    const gridFolder = gui.addFolder('Grid');
+    gridFolder.add(GridHelperParams, 'size', 1, 10, 1).onChange(() => {
+        if (tempSize !== GridHelperParams.size) {
+            gridHelper.scale.setScalar(GridHelperParams.size);
+            tempSize = GridHelperParams.size;
+        }
+    });
+    gridFolder.add(GridHelperParams, 'divisions', 1, 10, 1);
+    
     const cubeFolder = gui.addFolder('Cube');
     cubeFolder.add(cube.rotation, 'x', 0, Math.PI * 2);
     cubeFolder.add(cube.rotation, 'y', 0, Math.PI * 2);
     cubeFolder.add(cube.rotation, 'z', 0, Math.PI * 2);
     cubeFolder.open();
+
     const cameraFolder = gui.addFolder('Camera');
     cameraFolder.add(camera.position, 'x', 0, 100);
     cameraFolder.add(camera.position, 'y', 0, 100);
