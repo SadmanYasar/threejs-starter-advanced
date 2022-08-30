@@ -3,8 +3,6 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-const Dotenv = require('dotenv-webpack');
 const path = require('path');
 
 module.exports = {
@@ -47,7 +45,6 @@ module.exports = {
         }),
         new MiniCssExtractPlugin(),
         new CssMinimizerPlugin(),
-        new Dotenv()
     ],
     devServer: {
         static: path.resolve(__dirname, 'build'),
