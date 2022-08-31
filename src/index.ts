@@ -90,7 +90,7 @@ if (Settings.debug === true) {
 
             const gui = new GUI();
             const gridFolder = gui.addFolder('Grid');
-            gridFolder.add(GridHelperParams, 'size', 1, 10, 1).onChange(() => {
+            gridFolder.add(GridHelperParams, 'size', 1, 10, 1).onFinishChange(() => {
                 const size = GridHelperParams.size;
 
                 if (tempSize !== size) {
@@ -112,12 +112,16 @@ if (Settings.debug === true) {
                 reset: resetCam,
             };
             const cameraFolder = gui.addFolder('Camera');
-            cameraFolder.add(cam, 'reset').name('Reset Camera');
-
+            
             const camPosFolder = cameraFolder.addFolder('Position');
             camPosFolder.add(camera.position, 'x', 0, 100).listen();
             camPosFolder.add(camera.position, 'y', 0, 100).listen();
             camPosFolder.add(camera.position, 'z', 0, 100).listen();
+            camPosFolder.add(camera, 'fov', 60, 100).onFinishChange((val: number) => {
+                camera.fov = val;
+                camera.updateProjectionMatrix();
+            });
+            cameraFolder.add(cam, 'reset').name('Reset Camera');
             camPosFolder.open();
         } catch (error) {
             console.log('failed to load debug :(');
