@@ -1,4 +1,4 @@
-import { camera } from "..";
+import { mainCamera } from "..";
 import { Settings } from "./defaults";
 
 // need a backend server for this function
@@ -20,8 +20,8 @@ export const updateSettings = (props: updateFileParamTypes): void => {
 export const resetCam = (): void => {
     const { x, y, z } = Settings.camera.pos;
     const { fov, near, far } = Settings.camera;
-    camera.position.set(x, y, z);
-    camera.fov = fov;
-    camera.near = near;
-    camera.far = far;
+    mainCamera.position.set(x, y, z);
+    mainCamera.fov = fov;
+    mainCamera.near = near;
+    mainCamera.far = far;
 };

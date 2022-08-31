@@ -2,6 +2,7 @@ import './styles/style.css';
 import {
     AxesHelper,
     BoxGeometry,
+    CameraHelper,
     GridHelper,
     Mesh,
     MeshBasicMaterial,
@@ -28,27 +29,26 @@ const contendor = document.body;
     console.log('not exists');
 } */
 
-console.log({ ...Settings });
-
 const scene = new Scene();
 
 const onWindowResize = () => {
-    camera.aspect = contendor.clientWidth / contendor.clientHeight;
+    currentCamera.aspect = contendor.clientWidth / contendor.clientHeight;
 
-    camera.updateProjectionMatrix();
+    currentCamera.updateProjectionMatrix();
 
     renderer.setSize(contendor.clientWidth, contendor.clientHeight);
 };
 window.addEventListener('resize', onWindowResize, false);
 
-export const camera = new PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.8, 1000);
-camera.position.set(0, 0, 4);
+export const mainCamera = new PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.8, 1000);
+mainCamera.position.set(0, 0, 4);
+let currentCamera: PerspectiveCamera = mainCamera;
 
 const renderer = new WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 
-const controls = new OrbitControls(camera, renderer.domElement);
+const controls = new OrbitControls(currentCamera, renderer.domElement);
 
 const geometry = new BoxGeometry();
 const material = new MeshBasicMaterial({
@@ -75,10 +75,27 @@ in settings.json
 */
 let stats: Stats;
 if (Settings.debug === true) {
+    const element = document.createElement('div');
+    element.innerText = 'Debug mode - Main View';
+    element.style.cssText = `
+        width: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        display: flex;
+        justify-content: center;
+        z-index: 2;
+        color: yellow;
+    `;
+    document.body.appendChild(element);
+
     void (async () => {
+        console.log({ ...Settings });
+
         try {
             const { GUI } = await import('dat.gui');
             const { GridHelperParams } = await import('./utils/defaults');
+            const { TransformControls } = await import('three/examples/jsm/controls/TransformControls');
 
             const axesHelper = new AxesHelper(10);
             scene.add(axesHelper);
@@ -89,7 +106,16 @@ if (Settings.debug === true) {
             let tempSize: number = GridHelperParams.size;
             scene.add(gridHelper);
 
+            const editorCamera = new PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.8, 1000);
+            editorCamera.position.set(0, 0, 4);
+            const editorCameraHelper = new CameraHelper(editorCamera);
+            scene.add(editorCameraHelper);
+
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const transformControls = new TransformControls(editorCamera, renderer.domElement);
+
             const gui = new GUI();
+            gui.addFolder('Settings');
             const gridFolder = gui.addFolder('Grid');
             gridFolder.add(GridHelperParams, 'size', 1, 10, 1).onFinishChange(() => {
                 const size = GridHelperParams.size;
@@ -108,27 +134,63 @@ if (Settings.debug === true) {
             cubeRotateFolder.add(cube.rotation, 'z', 0, Math.PI * 2);
             cubeRotateFolder.open();
 
+            // Camera editor
+            // This is the one for main app
             const cam = {
-                reset: resetCam,
+                resetAll: () => {
+                    resetCam();
+                    const { x, y, z } = Settings.camera.pos;
+                    const { fov, near, far } = Settings.camera;
+                    editorCamera.position.set(x, y, z);
+                    editorCamera.fov = fov;
+                    editorCamera.near = near;
+                    editorCamera.far = far;
+                    editorCamera.lookAt(0, 0, 0);
+                    editorCamera.updateMatrixWorld();
+                },
+                setEditorToMain: () => {
+                    const { x, y, z } = mainCamera.position;
+                    editorCamera.position.set(x, y, z);
+                    editorCamera.lookAt(0, 0, 0);
+                    editorCamera.updateMatrixWorld();
+                }
             };
             const cameraFolder = gui.addFolder('Camera');
 
-            cameraFolder.add(camera.position, 'x', 0, 100).name('pos-x').listen();
-            cameraFolder.add(camera.position, 'y', 0, 100).name('pos-y').listen();
-            cameraFolder.add(camera.position, 'z', 0, 100).name('pos-z').listen();
-            cameraFolder.add(camera, 'fov', 60, 100).onFinishChange((val: number) => {
-                camera.fov = val;
-                camera.updateProjectionMatrix();
+            cameraFolder.add(editorCamera.position, 'x', 0, 100).name('pos-x').listen();
+            cameraFolder.add(editorCamera.position, 'y', 0, 100).name('pos-y').listen();
+            cameraFolder.add(editorCamera.position, 'z', 0, 100).name('pos-z').listen();
+            cameraFolder.add(editorCamera, 'fov', 60, 100).onChange(() => {
+                editorCamera.updateProjectionMatrix();
+                editorCameraHelper.update();
             }).listen();
-            cameraFolder.add(camera, 'near', 0, 1, 0.1).onChange((val: number) => {
-                camera.near = val;
-                camera.updateProjectionMatrix();
+            cameraFolder.add(editorCamera, 'near', 0, 1, 0.1).onChange(() => {
+                editorCamera.updateProjectionMatrix();
+                editorCameraHelper.update();
             }).listen();
-            cameraFolder.add(camera, 'far', 0, 1000, 10).onChange((val: number) => {
-                camera.far = val;
-                camera.updateProjectionMatrix();
+            cameraFolder.add(editorCamera, 'far', 0, 1000, 10).onChange(() => {
+                editorCamera.updateProjectionMatrix();
+                editorCameraHelper.update();
             }).listen();
-            cameraFolder.add(cam, 'reset').name('Reset Camera');
+            cameraFolder.add(cam, 'resetAll').name('Reset All Camera');
+            cameraFolder.add(cam, 'setEditorToMain').name('Set Editor Camera To Main');
+
+            const currentCam = {
+                cam: () => {
+                    const changeTo = currentCamera === mainCamera ? editorCamera : mainCamera;
+                    controls.object = changeTo;
+                    transformControls.camera = changeTo;
+                    currentCamera = changeTo;
+                    renderer.render(scene, currentCamera);
+
+                    onWindowResize();
+                },
+            };
+            let camType = 'Editor';
+            cameraFolder.add(currentCam, 'cam').name(`Toggle Camera`).onChange(() => {
+                element.innerText = `Debug Mode - ${camType} View`;
+                camType = camType === 'Editor' ? 'Main' : 'Editor';
+            });
             cameraFolder.open();
         } catch (error) {
             console.log('failed to load debug :(');
@@ -138,7 +200,7 @@ if (Settings.debug === true) {
 
 const animate = () => {
     controls.update();
-    renderer.render(scene, camera);
+    renderer.render(scene, currentCamera);
 
     if (Settings.debug === true) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call
