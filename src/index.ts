@@ -17,6 +17,7 @@ import { resetCam } from './utils/helper';
 
 const contendor = document.body;
 
+// can only use this in a server
 // search for settings.json
 // if not found then create one with existing data from defaults
 /* try {
@@ -94,7 +95,6 @@ if (Settings.debug === true) {
                 const size = GridHelperParams.size;
 
                 if (tempSize !== size) {
-                    console.log(size / 10);
                     gridHelper.scale.setScalar(size / 10);
                     tempSize = size / 10;
                 }
@@ -108,21 +108,28 @@ if (Settings.debug === true) {
             cubeRotateFolder.add(cube.rotation, 'z', 0, Math.PI * 2);
             cubeRotateFolder.open();
 
-            const cam = { 
+            const cam = {
                 reset: resetCam,
             };
             const cameraFolder = gui.addFolder('Camera');
-            
-            const camPosFolder = cameraFolder.addFolder('Position');
-            camPosFolder.add(camera.position, 'x', 0, 100).listen();
-            camPosFolder.add(camera.position, 'y', 0, 100).listen();
-            camPosFolder.add(camera.position, 'z', 0, 100).listen();
-            camPosFolder.add(camera, 'fov', 60, 100).onFinishChange((val: number) => {
+
+            cameraFolder.add(camera.position, 'x', 0, 100).name('pos-x').listen();
+            cameraFolder.add(camera.position, 'y', 0, 100).name('pos-y').listen();
+            cameraFolder.add(camera.position, 'z', 0, 100).name('pos-z').listen();
+            cameraFolder.add(camera, 'fov', 60, 100).onFinishChange((val: number) => {
                 camera.fov = val;
                 camera.updateProjectionMatrix();
-            });
+            }).listen();
+            cameraFolder.add(camera, 'near', 0, 1, 0.1).onChange((val: number) => {
+                camera.near = val;
+                camera.updateProjectionMatrix();
+            }).listen();
+            cameraFolder.add(camera, 'far', 0, 1000, 10).onChange((val: number) => {
+                camera.far = val;
+                camera.updateProjectionMatrix();
+            }).listen();
             cameraFolder.add(cam, 'reset').name('Reset Camera');
-            camPosFolder.open();
+            cameraFolder.open();
         } catch (error) {
             console.log('failed to load debug :(');
         }
