@@ -1,11 +1,9 @@
-import { PerspectiveCamera, Vector3 } from "three";
-import fs from 'fs';
+import * as fs from 'fs';
 import { SettingsType } from "../types";
+import { camera } from "..";
+import { Settings } from "./defaults";
 
-export const setCameraToVector = (camera: PerspectiveCamera, vector: Vector3): void => {
-    camera.position.set(vector.x, vector.y, vector.z);
-};
-
+// need a backend server for this function
 interface updateFileParamTypes {
     path: string;
     updatedSettings: SettingsType;
@@ -19,4 +17,10 @@ export const updateSettings = (props: updateFileParamTypes): void => {
         console.log(JSON.stringify(props.updatedSettings, null, 2));
         console.log('writing to ' + props.path);
     });
+};
+
+export const resetCam = (): void => {
+    const { x, y, z } = Settings.camera.pos;
+
+    camera.position.set(x, y, z);
 };

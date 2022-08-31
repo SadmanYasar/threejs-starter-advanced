@@ -11,17 +11,23 @@ import {
 } from 'three';
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { Settings } from './utils/defaults';
 import Stats from 'three/examples/jsm/libs/stats.module';
-import { GUI } from 'dat.gui';
-import { GridHelperParams } from './utils/defaults';
-import Settings from './settings.json';
+import { resetCam } from './utils/helper';
+
 const contendor = document.body;
 
 // search for settings.json
 // if not found then create one with existing data from defaults
+/* try {
+    if (fs.existsSync('/settings.json')) {
+        console.log('exists');
+    }
+} catch (error) {
+    console.log('not exists');
+} */
 
-
-console.log({...Settings});
+console.log({ ...Settings });
 
 const scene = new Scene();
 
@@ -34,7 +40,7 @@ const onWindowResize = () => {
 };
 window.addEventListener('resize', onWindowResize, false);
 
-const camera = new PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.8, 1000);
+export const camera = new PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.8, 1000);
 camera.position.set(0, 0, 4);
 
 const renderer = new WebGLRenderer();
@@ -59,52 +65,64 @@ controls.update();
 contendor.appendChild(renderer.domElement);
 
 /*
-=========================================
+============================
 GUI
 
-For prod, use environment variable 
-that controls viewing these debug stuffs.
-=========================================
+For prod, set debug to false
+in settings.json
+============================
 */
 let stats: Stats;
 if (Settings.debug === true) {
-    const axesHelper = new AxesHelper(10);
-    scene.add(axesHelper);
-    stats = Stats();
-    document.body.appendChild(stats.dom);
+    void (async () => {
+        try {
+            const { GUI } = await import('dat.gui');
+            const { GridHelperParams } = await import('./utils/defaults');
 
-    const gridHelper = new GridHelper(GridHelperParams.size, GridHelperParams.divisions);
-    let tempSize: number = GridHelperParams.size;
-    scene.add(gridHelper);
+            const axesHelper = new AxesHelper(10);
+            scene.add(axesHelper);
+            stats = Stats();
+            document.body.appendChild(stats.dom);
 
-    const gui = new GUI();
-    const gridFolder = gui.addFolder('Grid');
-    gridFolder.add(GridHelperParams, 'size', 1, 10, 1).onChange(() => {
-        const size = GridHelperParams.size;
+            const gridHelper = new GridHelper(GridHelperParams.size, GridHelperParams.divisions);
+            let tempSize: number = GridHelperParams.size;
+            scene.add(gridHelper);
 
-        if (tempSize !== size) {
-            console.log(size / 10);
-            gridHelper.scale.setScalar(size / 10);
-            tempSize = size / 10;
+            const gui = new GUI();
+            const gridFolder = gui.addFolder('Grid');
+            gridFolder.add(GridHelperParams, 'size', 1, 10, 1).onChange(() => {
+                const size = GridHelperParams.size;
+
+                if (tempSize !== size) {
+                    console.log(size / 10);
+                    gridHelper.scale.setScalar(size / 10);
+                    tempSize = size / 10;
+                }
+            });
+            // gridFolder.add(GridHelperParams, 'divisions', 1, 10, 1);
+
+            const cubeFolder = gui.addFolder('Cube');
+            const cubeRotateFolder = cubeFolder.addFolder('Rotation');
+            cubeRotateFolder.add(cube.rotation, 'x', 0, Math.PI * 2);
+            cubeRotateFolder.add(cube.rotation, 'y', 0, Math.PI * 2);
+            cubeRotateFolder.add(cube.rotation, 'z', 0, Math.PI * 2);
+            cubeRotateFolder.open();
+
+            const cam = { 
+                reset: resetCam,
+            };
+            const cameraFolder = gui.addFolder('Camera');
+            cameraFolder.add(cam, 'reset').name('Reset Camera');
+
+            const camPosFolder = cameraFolder.addFolder('Position');
+            camPosFolder.add(camera.position, 'x', 0, 100).listen();
+            camPosFolder.add(camera.position, 'y', 0, 100).listen();
+            camPosFolder.add(camera.position, 'z', 0, 100).listen();
+            camPosFolder.open();
+        } catch (error) {
+            console.log('failed to load debug :(');
         }
-    });
-    // gridFolder.add(GridHelperParams, 'divisions', 1, 10, 1);
-    
-    const cubeFolder = gui.addFolder('Cube');
-    const cubeRotateFolder = cubeFolder.addFolder('Rotation');
-    cubeRotateFolder.add(cube.rotation, 'x', 0, Math.PI * 2);
-    cubeRotateFolder.add(cube.rotation, 'y', 0, Math.PI * 2);
-    cubeRotateFolder.add(cube.rotation, 'z', 0, Math.PI * 2);
-    cubeRotateFolder.open();
-    
-    //const cam = { setCam: log };
-    const cameraFolder = gui.addFolder('Camera');
-    //cameraFolder.add(cam, 'setCam').name('Set Camera to current Position');
-    const camPosFolder = cameraFolder.addFolder('Position');
-    camPosFolder.add(camera.position, 'x', 0, 100);
-    camPosFolder.add(camera.position, 'y', 0, 100);
-    camPosFolder.add(camera.position, 'z', 0, 100);
-    camPosFolder.open();
+    })();
 }
 
 const animate = () => {
@@ -112,7 +130,8 @@ const animate = () => {
     renderer.render(scene, camera);
 
     if (Settings.debug === true) {
-        stats.update();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+        stats?.update();
     }
 
     window.requestAnimationFrame(animate);
