@@ -48,6 +48,7 @@ const material = new MeshBasicMaterial({
 });
 
 const cube = new Mesh(geometry, material);
+cube.name = "Cube";
 scene.add(cube);
 
 //controls.update() must be called after any manual changes to the camera's transform
@@ -102,6 +103,8 @@ if (Settings.debug === true) {
 
             editorCamera = new PerspectiveCamera(fov, window.innerWidth / window.innerHeight, near, far);
             editorCamera.position.set(x, y, z);
+            editorCamera.name = "EditorCam";
+
             editorCameraHelper = new CameraHelper(editorCamera);
             scene.add(editorCameraHelper);
 
@@ -114,7 +117,7 @@ if (Settings.debug === true) {
             const gui = new GUI();
             gui.addFolder('Settings');
             const gridFolder = gui.addFolder('Grid');
-            gridFolder.add(GridHelperParams, 'size', 1, 10, 1).onFinishChange(() => {
+            gridFolder.add(GridHelperParams, 'size', 1, GridHelperParams.size, 1).onFinishChange(() => {
                 const size = GridHelperParams.size;
 
                 if (tempSize !== size) {
@@ -122,6 +125,7 @@ if (Settings.debug === true) {
                     tempSize = size / 10;
                 }
             });
+            gridFolder.add(gridHelper, 'visible');
             // gridFolder.add(GridHelperParams, 'divisions', 1, 10, 1);
 
             const cubeFolder = gui.addFolder('Cube');
@@ -137,13 +141,15 @@ if (Settings.debug === true) {
                 resetAll: () => {
                     resetCam();
 
+                    controls.enabled = true;
+                    transformControls.enabled = false;
                     editorCamera.position.set(x, y, z);
                     editorCamera.fov = fov;
                     editorCamera.near = near;
                     editorCamera.far = far;
                     editorCamera.lookAt(0, 0, 0);
                     editorCamera.updateMatrixWorld();
-                    currentCamera.updateProjectionMatrix();
+                    mainCamera.updateProjectionMatrix();
                 },
                 setEditorToMain: () => {
                     const { x, y, z } = mainCamera.position;
@@ -181,6 +187,7 @@ if (Settings.debug === true) {
             cameraFolder.add(editorCamera, 'fov', 60, 100).onChange(handleChange);
             cameraFolder.add(editorCamera, 'near', 0, 1, 0.1).onChange(handleChange);
             cameraFolder.add(editorCamera, 'far', 0, 500, 10).onChange(handleChange);
+            cameraFolder.add(editorCameraHelper, 'visible');
             cameraFolder.add(cam, 'resetAll').name('Reset All Camera (R)');
             cameraFolder.add(cam, 'setEditorToMain').name('Set Editor Camera To Main (S)');
 
@@ -195,6 +202,9 @@ if (Settings.debug === true) {
                         break;
 
                     case 't':
+                        if (transformControls.enabled === true) {
+                            break;
+                        }
                         cam.toggleCam();
                         break;
 
@@ -203,6 +213,10 @@ if (Settings.debug === true) {
                         break;
 
                     case 'e':
+                        if (currentCamera !== mainCamera) {
+                            cam.toggleCam();
+                        }
+
                         controls.enabled = !controls.enabled;
                         transformControls.enabled = !controls.enabled;
                         break;
