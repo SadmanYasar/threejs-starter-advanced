@@ -14,7 +14,7 @@ import {
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Settings } from './utils/defaults';
 import Stats from 'three/examples/jsm/libs/stats.module';
-import { resetCam, SettingManager } from './utils/helper';
+import { generateSettings, resetCam } from './utils/helper';
 
 const contendor = document.body;
 const { x, y, z } = Settings.camera.pos;
@@ -89,7 +89,7 @@ if (Settings.debug === true) {
         try {
             const { GUI } = await import('dat.gui');
             const { GridHelperParams } = await import('./utils/defaults');
-            //const { TransformControls } = await import('three/examples/jsm/controls/TransformControls');
+            const { TransformControls } = await import('three/examples/jsm/controls/TransformControls');
 
             const axesHelper = new AxesHelper(10);
             scene.add(axesHelper);
@@ -106,7 +106,10 @@ if (Settings.debug === true) {
             scene.add(editorCameraHelper);
 
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            //const transformControls = new TransformControls(editorCamera, renderer.domElement);
+            const transformControls = new TransformControls(mainCamera, renderer.domElement);
+            transformControls.attach(cube);
+            scene.add(transformControls);
+            transformControls.enabled = false;
 
             const gui = new GUI();
             gui.addFolder('Settings');
@@ -122,10 +125,10 @@ if (Settings.debug === true) {
             // gridFolder.add(GridHelperParams, 'divisions', 1, 10, 1);
 
             const cubeFolder = gui.addFolder('Cube');
-            const cubeRotateFolder = cubeFolder.addFolder('Rotation');
-            cubeRotateFolder.add(cube.rotation, 'x', 0, Math.PI * 2);
-            cubeRotateFolder.add(cube.rotation, 'y', 0, Math.PI * 2);
-            cubeRotateFolder.add(cube.rotation, 'z', 0, Math.PI * 2);
+            const cubeRotateFolder = cubeFolder.addFolder('Position');
+            cubeRotateFolder.add(cube.position, 'x', 0, 100).listen();
+            cubeRotateFolder.add(cube.position, 'y', 0, 100).listen();
+            cubeRotateFolder.add(cube.position, 'z', 0, 100).listen();
             cubeRotateFolder.open();
 
             // editor cam functions for debugging
@@ -160,23 +163,29 @@ if (Settings.debug === true) {
 
                     onWindowResize();
                 },
+                generateSettings: () => {
+                    console.log(JSON.stringify(generateSettings({
+                        debug: true,
+                        camera: editorCamera
+                    }), null, 4));
+                }
             };
 
             cam.resetAll();
             const cameraFolder = gui.addFolder('Camera');
 
             const handleChange = () => needsUpdate = needsUpdate === false ? true : true;
-
-            cameraFolder.add(editorCamera.position, 'x', -100, 100, 1).name('pos-x').listen();
-            cameraFolder.add(editorCamera.position, 'y', -100, 100, 1).name('pos-y').listen();
-            cameraFolder.add(editorCamera.position, 'z', -100, 100, 1).name('pos-z').listen();
-            cameraFolder.add(editorCamera, 'fov', 60, 100).onChange(handleChange).listen();
-            cameraFolder.add(editorCamera, 'near', 0, 1, 0.1).onChange(handleChange).listen();
-            cameraFolder.add(editorCamera, 'far', 0, 500, 10).onChange(handleChange).listen();
+            cameraFolder.add(editorCamera.position, 'x', -100, 100, 1).name('pos-x').onChange(handleChange);
+            cameraFolder.add(editorCamera.position, 'y', -100, 100, 1).name('pos-y').onChange(handleChange);
+            cameraFolder.add(editorCamera.position, 'z', -100, 100, 1).name('pos-z').onChange(handleChange);
+            cameraFolder.add(editorCamera, 'fov', 60, 100).onChange(handleChange);
+            cameraFolder.add(editorCamera, 'near', 0, 1, 0.1).onChange(handleChange);
+            cameraFolder.add(editorCamera, 'far', 0, 500, 10).onChange(handleChange);
             cameraFolder.add(cam, 'resetAll').name('Reset All Camera (R)');
-            cameraFolder.add(cam, 'setEditorToMain').name('Set Editor Camera To Main');
+            cameraFolder.add(cam, 'setEditorToMain').name('Set Editor Camera To Main (S)');
 
             cameraFolder.add(cam, 'toggleCam').name(`Toggle Camera (T)`);
+            cameraFolder.add(cam, 'generateSettings').name(`Generate Settings`);
             cameraFolder.open();
 
             window.addEventListener('keydown', (e) => {
@@ -193,8 +202,9 @@ if (Settings.debug === true) {
                         cam.setEditorToMain();
                         break;
 
-                    case ('ctrlKey' && 'z'):
-                        SettingManager.undo();
+                    case 'e':
+                        controls.enabled = !controls.enabled;
+                        transformControls.enabled = !controls.enabled;
                         break;
 
                     default:

@@ -1,6 +1,7 @@
+import { PerspectiveCamera } from "three";
 import { mainCamera } from "..";
-import { SettingsType } from "../types";
 import { Settings } from "./defaults";
+import { SettingsType } from "../types/index";
 
 export const resetCam = (): void => {
     const { x, y, z } = Settings.camera.pos;
@@ -11,7 +12,8 @@ export const resetCam = (): void => {
     mainCamera.far = far;
 };
 
-interface SettingManagerTypes {
+// Might implement later
+/* interface SettingManagerTypes {
     allSettings: SettingsType[];
     save: (currentSetting: SettingsType) => void;
     undo: () => void;
@@ -42,4 +44,29 @@ export const SettingManager: SettingManagerTypes= {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return setting ? JSON.parse(setting) : null;
     },
+}; */
+
+interface generateSettingsTypes {
+    debug: boolean;
+    camera: PerspectiveCamera;
+    //light: light
+}
+export const generateSettings = ({ 
+    debug,
+    camera,
+ }: generateSettingsTypes ): SettingsType => {
+    const { x, y, z } = camera.position;
+    const { fov, near, far } = camera;
+
+    return {
+        debug,
+        camera: {
+            pos: {
+                x, y, z
+            },
+            fov,
+            near,
+            far
+        }
+    };
 };

@@ -1,13 +1,11 @@
 import { GridHelperParamsTypes, SettingsType } from "../types";
-import { SettingManager } from "./helper";
 
 export const GridHelperParams: GridHelperParamsTypes = {
     size: 10,
     divisions: 10
 };
 
-const result = SettingManager.get();
-export const Settings: SettingsType = result ? result : {
+export const Settings: SettingsType = {
     debug: true,
     camera: {
         pos: {
