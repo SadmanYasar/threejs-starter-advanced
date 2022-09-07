@@ -1,15 +1,61 @@
-import { PerspectiveCamera } from "three";
-import { mainCamera } from "..";
+import { PerspectiveCamera, Vector3, WebGLRenderer } from "three";
 import { Settings } from "./defaults";
 import { SettingsType } from "../types/index";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import { TransformControls } from "three/examples/jsm/controls/TransformControls";
 
-export const resetCam = (): void => {
+interface onWindowResizeProps {
+    currentCamera: PerspectiveCamera;
+    contendor: HTMLElement;
+    renderer: WebGLRenderer;
+}
+const onWindowResize = ({ contendor, currentCamera, renderer }: onWindowResizeProps) => {
+    currentCamera.aspect = contendor.clientWidth / contendor.clientHeight;
+
+    currentCamera.updateProjectionMatrix();
+
+    renderer.setSize(contendor.clientWidth, contendor.clientHeight);
+};
+
+interface resetCamProps {
+    mainCamera: PerspectiveCamera;
+    editorCamera: PerspectiveCamera;
+    controls: OrbitControls;
+    transformControls: TransformControls;
+}
+const resetCam = ({
+    mainCamera,
+    editorCamera,
+    controls,
+    transformControls }: resetCamProps): void => {
     const { x, y, z } = Settings.camera.pos;
     const { fov, near, far } = Settings.camera;
     mainCamera.position.set(x, y, z);
     mainCamera.fov = fov;
     mainCamera.near = near;
     mainCamera.far = far;
+
+    controls.object = mainCamera;
+    controls.enabled = true;
+    transformControls.enabled = false;
+    editorCamera.position.set(x, y, z);
+    editorCamera.fov = fov;
+    editorCamera.near = near;
+    editorCamera.far = far;
+    editorCamera.lookAt(0, 0, 0);
+    editorCamera.updateMatrixWorld();
+    mainCamera.updateProjectionMatrix();
+};
+
+interface setEditorToMainProps {
+    mainCameraPos: Vector3;
+    editorCamera: PerspectiveCamera;
+}
+const setEditorToMain = ({ mainCameraPos, editorCamera }: setEditorToMainProps) => {
+    const { x, y, z } = mainCameraPos;
+    editorCamera.position.set(x, y, z);
+    editorCamera.lookAt(0, 0, 0);
+    editorCamera.updateMatrixWorld();
 };
 
 // Might implement later
@@ -46,15 +92,15 @@ export const SettingManager: SettingManagerTypes= {
     },
 }; */
 
-interface generateSettingsTypes {
+interface generateSettingsProps {
     debug: boolean;
     camera: PerspectiveCamera;
     //light: light
 }
-export const generateSettings = ({ 
+const generateSettings = ({
     debug,
     camera,
- }: generateSettingsTypes ): SettingsType => {
+}: generateSettingsProps): SettingsType => {
     const { x, y, z } = camera.position;
     const { fov, near, far } = camera;
 
@@ -69,4 +115,11 @@ export const generateSettings = ({
             far
         }
     };
+};
+
+export default {
+    onWindowResize,
+    resetCam,
+    generateSettings,
+    setEditorToMain,
 };

@@ -14,7 +14,7 @@ import {
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Settings } from './utils/defaults';
 import Stats from 'three/examples/jsm/libs/stats.module';
-import { generateSettings, resetCam } from './utils/helper';
+import helper from './utils/helper';
 
 const contendor = document.body;
 const { x, y, z } = Settings.camera.pos;
@@ -22,16 +22,13 @@ const { fov, near, far } = Settings.camera;
 
 const scene = new Scene();
 
-const onWindowResize = () => {
-    currentCamera.aspect = contendor.clientWidth / contendor.clientHeight;
+window.addEventListener('resize', () => {
+    helper.onWindowResize({
+        contendor, currentCamera, renderer
+    });
+}, false);
 
-    currentCamera.updateProjectionMatrix();
-
-    renderer.setSize(contendor.clientWidth, contendor.clientHeight);
-};
-window.addEventListener('resize', onWindowResize, false);
-
-export const mainCamera = new PerspectiveCamera(fov, window.innerWidth / window.innerHeight, near, far);
+const mainCamera = new PerspectiveCamera(fov, window.innerWidth / window.innerHeight, near, far);
 mainCamera.position.set(x, y, z);
 let currentCamera: PerspectiveCamera = mainCamera;
 
@@ -91,22 +88,28 @@ if (Settings.debug === true) {
             const { GUI } = await import('dat.gui');
             const { GridHelperParams } = await import('./utils/defaults');
             const { TransformControls } = await import('three/examples/jsm/controls/TransformControls');
-
+            const { Group } = await import('three');
+            const helperGroup = new Group();
             const axesHelper = new AxesHelper(10);
-            scene.add(axesHelper);
+            helperGroup.add(axesHelper);
+            //scene.add(axesHelper);
             stats = Stats();
             document.body.appendChild(stats.dom);
 
             const gridHelper = new GridHelper(GridHelperParams.size, GridHelperParams.divisions);
             let tempSize: number = GridHelperParams.size;
-            scene.add(gridHelper);
+            helperGroup.add(gridHelper);
+            //scene.add(gridHelper);
 
             editorCamera = new PerspectiveCamera(fov, window.innerWidth / window.innerHeight, near, far);
             editorCamera.position.set(x, y, z);
             editorCamera.name = "EditorCam";
 
             editorCameraHelper = new CameraHelper(editorCamera);
-            scene.add(editorCameraHelper);
+            helperGroup.add(editorCameraHelper);
+            //scene.add(editorCameraHelper);
+
+            scene.add(helperGroup);
 
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const transformControls = new TransformControls(mainCamera, renderer.domElement);
@@ -126,7 +129,6 @@ if (Settings.debug === true) {
                 }
             });
             gridFolder.add(gridHelper, 'visible');
-            // gridFolder.add(GridHelperParams, 'divisions', 1, 10, 1);
 
             const cubeFolder = gui.addFolder('Cube');
             const cubeRotateFolder = cubeFolder.addFolder('Position');
@@ -135,28 +137,17 @@ if (Settings.debug === true) {
             cubeRotateFolder.add(cube.position, 'z', 0, 100).listen();
             cubeRotateFolder.open();
 
-            // editor cam functions for debugging
             let camType = 'Editor';
-            const cam = {
+            // Global helper functions for debugging
+            const GLOBAL_HELPER = {
                 resetAll: () => {
-                    resetCam();
-
-                    controls.object = mainCamera;
-                    controls.enabled = true;
-                    transformControls.enabled = false;
-                    editorCamera.position.set(x, y, z);
-                    editorCamera.fov = fov;
-                    editorCamera.near = near;
-                    editorCamera.far = far;
-                    editorCamera.lookAt(0, 0, 0);
-                    editorCamera.updateMatrixWorld();
-                    mainCamera.updateProjectionMatrix();
+                    helper.resetCam({ mainCamera, editorCamera, controls, transformControls });
                 },
                 setEditorToMain: () => {
-                    const { x, y, z } = mainCamera.position;
-                    editorCamera.position.set(x, y, z);
-                    editorCamera.lookAt(0, 0, 0);
-                    editorCamera.updateMatrixWorld();
+                    helper.setEditorToMain({
+                        mainCameraPos: mainCamera.position,
+                        editorCamera
+                    });
                 },
                 toggleCam: () => {
                     if (transformControls.enabled === true) {
@@ -171,17 +162,20 @@ if (Settings.debug === true) {
                     element.innerText = `Debug Mode - ${camType} View`;
                     camType = camType === 'Editor' ? 'Main' : 'Editor';
 
-                    onWindowResize();
+                    helper.onWindowResize({
+                        contendor, currentCamera, renderer
+                    });
                 },
                 generateSettings: () => {
-                    console.log(JSON.stringify(generateSettings({
+                    console.log(JSON.stringify(helper.generateSettings({
                         debug: true,
                         camera: editorCamera
                     }), null, 4));
                 }
             };
 
-            cam.resetAll();
+            GLOBAL_HELPER.resetAll();
+            helper.resetCam({ mainCamera, editorCamera, controls, transformControls });
             const cameraFolder = gui.addFolder('Camera');
 
             const handleChange = () => needsUpdate = needsUpdate === false ? true : true;
@@ -192,30 +186,30 @@ if (Settings.debug === true) {
             cameraFolder.add(editorCamera, 'near', 0, 1, 0.1).onChange(handleChange).listen();
             cameraFolder.add(editorCamera, 'far', 0, 500, 10).onChange(handleChange).listen();
             cameraFolder.add(editorCameraHelper, 'visible');
-            cameraFolder.add(cam, 'resetAll').name('Reset All Camera (R)');
-            cameraFolder.add(cam, 'setEditorToMain').name('Set Editor Camera To Main (S)');
+            cameraFolder.add(GLOBAL_HELPER, 'resetAll').name('Reset All Camera (R)');
+            cameraFolder.add(GLOBAL_HELPER, 'setEditorToMain').name('Set Editor Camera To Main (S)');
 
-            cameraFolder.add(cam, 'toggleCam').name(`Toggle Camera (T)`);
-            cameraFolder.add(cam, 'generateSettings').name(`Generate Settings`);
+            cameraFolder.add(GLOBAL_HELPER, 'toggleCam').name(`Toggle Camera (T)`);
+            cameraFolder.add(GLOBAL_HELPER, 'generateSettings').name(`Generate Settings`);
             cameraFolder.open();
 
             window.addEventListener('keydown', (e) => {
                 switch (e.key) {
                     case 'r':
-                        cam.resetAll();
+                        GLOBAL_HELPER.resetAll();
                         break;
 
                     case 't':
-                        cam.toggleCam();
+                        GLOBAL_HELPER.toggleCam();
                         break;
 
                     case 's':
-                        cam.setEditorToMain();
+                        GLOBAL_HELPER.setEditorToMain();
                         break;
 
                     case 'e':
                         if (currentCamera !== mainCamera) {
-                            cam.toggleCam();
+                            GLOBAL_HELPER.toggleCam();
                         }
 
                         controls.enabled = !controls.enabled;
