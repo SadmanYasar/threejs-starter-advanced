@@ -141,6 +141,7 @@ if (Settings.debug === true) {
                 resetAll: () => {
                     resetCam();
 
+                    controls.object = mainCamera;
                     controls.enabled = true;
                     transformControls.enabled = false;
                     editorCamera.position.set(x, y, z);
@@ -158,6 +159,9 @@ if (Settings.debug === true) {
                     editorCamera.updateMatrixWorld();
                 },
                 toggleCam: () => {
+                    if (transformControls.enabled === true) {
+                        return;
+                    }
                     const changeTo = currentCamera === mainCamera ? editorCamera : mainCamera;
                     controls.object = changeTo;
                     controls.enabled = changeTo === mainCamera ? true : false;
@@ -181,12 +185,12 @@ if (Settings.debug === true) {
             const cameraFolder = gui.addFolder('Camera');
 
             const handleChange = () => needsUpdate = needsUpdate === false ? true : true;
-            cameraFolder.add(editorCamera.position, 'x', -100, 100, 1).name('pos-x').onChange(handleChange);
-            cameraFolder.add(editorCamera.position, 'y', -100, 100, 1).name('pos-y').onChange(handleChange);
-            cameraFolder.add(editorCamera.position, 'z', -100, 100, 1).name('pos-z').onChange(handleChange);
-            cameraFolder.add(editorCamera, 'fov', 60, 100).onChange(handleChange);
-            cameraFolder.add(editorCamera, 'near', 0, 1, 0.1).onChange(handleChange);
-            cameraFolder.add(editorCamera, 'far', 0, 500, 10).onChange(handleChange);
+            cameraFolder.add(editorCamera.position, 'x', -100, 100, 1).name('pos-x').onChange(handleChange).listen();
+            cameraFolder.add(editorCamera.position, 'y', -100, 100, 1).name('pos-y').onChange(handleChange).listen();
+            cameraFolder.add(editorCamera.position, 'z', -100, 100, 1).name('pos-z').onChange(handleChange).listen();
+            cameraFolder.add(editorCamera, 'fov', 60, 100).onChange(handleChange).listen();
+            cameraFolder.add(editorCamera, 'near', 0, 1, 0.1).onChange(handleChange).listen();
+            cameraFolder.add(editorCamera, 'far', 0, 500, 10).onChange(handleChange).listen();
             cameraFolder.add(editorCameraHelper, 'visible');
             cameraFolder.add(cam, 'resetAll').name('Reset All Camera (R)');
             cameraFolder.add(cam, 'setEditorToMain').name('Set Editor Camera To Main (S)');
@@ -202,9 +206,6 @@ if (Settings.debug === true) {
                         break;
 
                     case 't':
-                        if (transformControls.enabled === true) {
-                            break;
-                        }
                         cam.toggleCam();
                         break;
 
