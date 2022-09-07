@@ -88,18 +88,16 @@ if (Settings.debug === true) {
             const { GUI } = await import('dat.gui');
             const { GridHelperParams } = await import('./utils/defaults');
             const { TransformControls } = await import('three/examples/jsm/controls/TransformControls');
-            const { Group } = await import('three');
+            const { Group, Raycaster } = await import('three');
             const helperGroup = new Group();
             const axesHelper = new AxesHelper(10);
             helperGroup.add(axesHelper);
-            //scene.add(axesHelper);
             stats = Stats();
             document.body.appendChild(stats.dom);
 
             const gridHelper = new GridHelper(GridHelperParams.size, GridHelperParams.divisions);
             let tempSize: number = GridHelperParams.size;
             helperGroup.add(gridHelper);
-            //scene.add(gridHelper);
 
             editorCamera = new PerspectiveCamera(fov, window.innerWidth / window.innerHeight, near, far);
             editorCamera.position.set(x, y, z);
@@ -107,14 +105,11 @@ if (Settings.debug === true) {
 
             editorCameraHelper = new CameraHelper(editorCamera);
             helperGroup.add(editorCameraHelper);
-            //scene.add(editorCameraHelper);
 
             scene.add(helperGroup);
 
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const transformControls = new TransformControls(mainCamera, renderer.domElement);
-            transformControls.attach(cube);
-            scene.add(transformControls);
+            helperGroup.add(transformControls);
             transformControls.enabled = false;
 
             const gui = new GUI();
@@ -171,7 +166,7 @@ if (Settings.debug === true) {
                         debug: true,
                         camera: editorCamera
                     }), null, 4));
-                }
+                },
             };
 
             GLOBAL_HELPER.resetAll();
@@ -190,9 +185,10 @@ if (Settings.debug === true) {
             cameraFolder.add(GLOBAL_HELPER, 'setEditorToMain').name('Set Editor Camera To Main (S)');
 
             cameraFolder.add(GLOBAL_HELPER, 'toggleCam').name(`Toggle Camera (T)`);
-            cameraFolder.add(GLOBAL_HELPER, 'generateSettings').name(`Generate Settings`);
             cameraFolder.open();
 
+            gui.add(helperGroup, 'visible').name('Toggle Helpers (V)');
+            gui.add(GLOBAL_HELPER, 'generateSettings').name(`Generate Settings (G)`);
             window.addEventListener('keydown', (e) => {
                 switch (e.key) {
                     case 'r':
@@ -205,6 +201,14 @@ if (Settings.debug === true) {
 
                     case 's':
                         GLOBAL_HELPER.setEditorToMain();
+                        break;
+
+                    case 'v':
+                        helperGroup.visible = !helperGroup.visible;
+                        break;
+
+                    case 'g':
+                        GLOBAL_HELPER.generateSettings();
                         break;
 
                     case 'e':
@@ -220,6 +224,30 @@ if (Settings.debug === true) {
                         break;
                 }
             });
+
+            // const rayCastObjects = [ editorCameraContainer, cube ];
+            const raycaster = new Raycaster();
+            const onDoubleClick = (event: MouseEvent) => {
+                if (currentCamera === editorCamera) {
+                    return;
+                }
+
+                const mouse = {
+                    x: (event.clientX / renderer.domElement.clientWidth) * 2 - 1,
+                    y: -(event.clientY / renderer.domElement.clientHeight) * 2 + 1,
+                };
+
+                raycaster.setFromCamera(mouse, mainCamera);
+
+                const intersects = raycaster.intersectObjects(scene.children, false);
+                if (intersects.length > 0) {
+                    transformControls.attach(intersects[0].object);
+                } else {
+                    transformControls.visible = false;
+                }
+            };
+
+            renderer.domElement.addEventListener('dblclick', onDoubleClick, false);
         } catch (error) {
             console.log('failed to load debug :(');
         }

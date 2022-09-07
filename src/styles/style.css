@@ -24,4 +24,5 @@ html {
 body {
     background: none;
     background-color: black;
+    user-select: none;
 }
