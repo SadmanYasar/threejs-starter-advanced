@@ -136,8 +136,9 @@ interface initGuiProps {
     object: PerspectiveCamera | HemisphereLight | DirectionalLight | Mesh;
     helper?: CameraHelper | HemisphereLightHelper | DirectionalLightHelper;
     scale?: boolean;
+    visible?: boolean;
 }
-const initGui = ({ folderName, parentFolder, object, scale, helper }: initGuiProps): GUI => {
+const initGui = ({ folderName, parentFolder, object, scale, helper, visible = true }: initGuiProps): GUI => {
     const folder = parentFolder.addFolder(folderName);
 
     const pos = folder.addFolder('Position');
@@ -161,7 +162,7 @@ const initGui = ({ folderName, parentFolder, object, scale, helper }: initGuiPro
     }
 
     if (helper) {
-        folder.add(helper, 'visible');
+        folder.add(helper, 'visible').setValue(visible);
     } else {
         folder.add(object, 'visible');
     }

@@ -225,13 +225,15 @@ if (Settings.debug === true) {
                 object: hemlight,
                 parentFolder: lightFolder,
                 helper: hemLightHelper,
+                visible: false
             });
 
             helper.initGui({
                 folderName: 'Directional Light',
                 object: directionalLight,
                 parentFolder: lightFolder,
-                helper: directionalLightHelper
+                helper: directionalLightHelper,
+                visible: false
             });
 
             gui.add(helperGroup, 'visible').name('Toggle Helpers (V)');
@@ -272,7 +274,6 @@ if (Settings.debug === true) {
                 }
             });
 
-            //const rayCastObjects = [ editorCamContainer, cube ];
             const raycaster = new Raycaster();
             const onDoubleClick = (event: MouseEvent) => {
                 if (currentCamera === editorCamera) {
@@ -287,7 +288,6 @@ if (Settings.debug === true) {
                 raycaster.setFromCamera(mouse, mainCamera);
 
                 const intersects = raycaster.intersectObjects(scene.children, false);
-                console.log(intersects);
                 if (intersects.length > 0) {
                     transformControls.attach(intersects[0].object);
                     transformControls.enabled = true;
