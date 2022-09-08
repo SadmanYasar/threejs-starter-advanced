@@ -5,6 +5,10 @@ export const GridHelperParams: GridHelperParamsTypes = {
     divisions: 10
 };
 
+export const update = {
+    needsUpdate: false,
+};
+
 export const Settings: SettingsType = {
     debug: true,
     camera: {

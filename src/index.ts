@@ -3,7 +3,11 @@ import {
     AxesHelper,
     BoxGeometry,
     CameraHelper,
+    DirectionalLight,
+    DirectionalLightHelper,
     GridHelper,
+    HemisphereLight,
+    HemisphereLightHelper,
     Mesh,
     MeshBasicMaterial,
     PerspectiveCamera,
@@ -12,7 +16,7 @@ import {
 } from 'three';
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { Settings } from './utils/defaults';
+import { Settings, update } from './utils/defaults';
 import Stats from 'three/examples/jsm/libs/stats.module';
 import helper from './utils/helper';
 
@@ -54,6 +58,14 @@ controls.update();
 // creates a canvas on container div
 contendor.appendChild(renderer.domElement);
 
+// lights
+const hemlight = new HemisphereLight(0xffffbb, 0x080820, 1);
+scene.add(hemlight);
+
+// White directional light at half intensity shining from the top.
+const directionalLight = new DirectionalLight(0xffffff, 0.5);
+scene.add(directionalLight);
+
 /*
 ============================
 GUI
@@ -65,7 +77,6 @@ in settings.json
 let stats: Stats;
 let editorCamera: PerspectiveCamera;
 let editorCameraHelper: CameraHelper;
-let needsUpdate = false;
 if (Settings.debug === true) {
     const element = document.createElement('div');
     element.innerText = 'Debug mode - Main View';
@@ -102,11 +113,23 @@ if (Settings.debug === true) {
             editorCamera = new PerspectiveCamera(fov, window.innerWidth / window.innerHeight, near, far);
             editorCamera.position.set(x, y, z);
             editorCamera.name = "EditorCam";
+            scene.add(editorCamera);
 
             editorCameraHelper = new CameraHelper(editorCamera);
             helperGroup.add(editorCameraHelper);
 
+            const hemLightHelper = new HemisphereLightHelper(hemlight, 5);
+            helperGroup.add(hemLightHelper);
+
+            const directionalLightHelper = new DirectionalLightHelper(directionalLight, 5);
+            helperGroup.add(directionalLightHelper);
+
             scene.add(helperGroup);
+
+            /* const cameraEye = new Mesh(new SphereGeometry(0.5), new MeshBasicMaterial({ color: 0xdddddd }));
+            cameraEye.position.set(x, y, z);
+            scene.add(cameraEye);
+            editorCamera.attach(cameraEye); */
 
             const transformControls = new TransformControls(mainCamera, renderer.domElement);
             helperGroup.add(transformControls);
@@ -125,12 +148,18 @@ if (Settings.debug === true) {
             });
             gridFolder.add(gridHelper, 'visible');
 
-            const cubeFolder = gui.addFolder('Cube');
-            const cubeRotateFolder = cubeFolder.addFolder('Position');
+            //const cubeFolder = gui.addFolder('Cube');
+            helper.initGui({
+                folderName: 'Cube',
+                gui,
+                object: cube,
+                scale: true
+            });
+            /* const cubeRotateFolder = cubeFolder.addFolder('Position');
             cubeRotateFolder.add(cube.position, 'x', 0, 100).listen();
             cubeRotateFolder.add(cube.position, 'y', 0, 100).listen();
             cubeRotateFolder.add(cube.position, 'z', 0, 100).listen();
-            cubeRotateFolder.open();
+            cubeRotateFolder.open(); */
 
             let camType = 'Editor';
             // Global helper functions for debugging
@@ -173,7 +202,7 @@ if (Settings.debug === true) {
             helper.resetCam({ mainCamera, editorCamera, controls, transformControls });
             const cameraFolder = gui.addFolder('Camera');
 
-            const handleChange = () => needsUpdate = needsUpdate === false ? true : true;
+            const { handleChange } = helper;
             cameraFolder.add(editorCamera.position, 'x', -100, 100, 1).name('pos-x').onChange(handleChange).listen();
             cameraFolder.add(editorCamera.position, 'y', -100, 100, 1).name('pos-y').onChange(handleChange).listen();
             cameraFolder.add(editorCamera.position, 'z', -100, 100, 1).name('pos-z').onChange(handleChange).listen();
@@ -186,6 +215,11 @@ if (Settings.debug === true) {
 
             cameraFolder.add(GLOBAL_HELPER, 'toggleCam').name(`Toggle Camera (T)`);
             cameraFolder.open();
+
+            const lightFolder = gui.addFolder('Lights');
+
+            lightFolder.addFolder('Hemisphere Light');
+            lightFolder.addFolder('Directional Light');
 
             gui.add(helperGroup, 'visible').name('Toggle Helpers (V)');
             gui.add(GLOBAL_HELPER, 'generateSettings').name(`Generate Settings (G)`);
@@ -211,21 +245,21 @@ if (Settings.debug === true) {
                         GLOBAL_HELPER.generateSettings();
                         break;
 
-                    case 'e':
+                    /* case 'e':
                         if (currentCamera !== mainCamera) {
                             GLOBAL_HELPER.toggleCam();
                         }
 
                         controls.enabled = !controls.enabled;
                         transformControls.enabled = !controls.enabled;
-                        break;
+                        break; */
 
                     default:
                         break;
                 }
             });
 
-            // const rayCastObjects = [ editorCameraContainer, cube ];
+            //const rayCastObjects = [ editorCamContainer, cube ];
             const raycaster = new Raycaster();
             const onDoubleClick = (event: MouseEvent) => {
                 if (currentCamera === editorCamera) {
@@ -240,10 +274,15 @@ if (Settings.debug === true) {
                 raycaster.setFromCamera(mouse, mainCamera);
 
                 const intersects = raycaster.intersectObjects(scene.children, false);
+                console.log(intersects);
                 if (intersects.length > 0) {
                     transformControls.attach(intersects[0].object);
+                    transformControls.enabled = true;
+                    controls.enabled = false;
                 } else {
                     transformControls.visible = false;
+                    transformControls.enabled = false;
+                    controls.enabled = true;
                 }
             };
 
@@ -262,11 +301,11 @@ const animate = () => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-call
         stats?.update();
 
-        if (needsUpdate === true) {
+        if (update.needsUpdate === true) {
             editorCamera?.updateMatrixWorld();
             editorCamera?.updateProjectionMatrix();
             editorCameraHelper?.update();
-            needsUpdate = false;
+            update.needsUpdate = false;
         }
     }
 

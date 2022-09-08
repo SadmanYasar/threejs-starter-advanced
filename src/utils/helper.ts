@@ -1,8 +1,9 @@
-import { PerspectiveCamera, Vector3, WebGLRenderer } from "three";
-import { Settings } from "./defaults";
+import { DirectionalLight, HemisphereLight, Mesh, PerspectiveCamera, Vector3, WebGLRenderer } from "three";
+import { Settings, update } from "./defaults";
 import { SettingsType } from "../types/index";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { TransformControls } from "three/examples/jsm/controls/TransformControls";
+import { GUI } from "dat.gui";
 
 interface onWindowResizeProps {
     currentCamera: PerspectiveCamera;
@@ -117,9 +118,46 @@ const generateSettings = ({
     };
 };
 
+const handleChange = () => update.needsUpdate = update.needsUpdate === false ? true : true;
+
+interface initGuiProps {
+    folderName: string;
+    gui: GUI;
+    object: PerspectiveCamera | HemisphereLight | DirectionalLight | Mesh;
+    scale?: boolean;
+}
+const initGui = ({ folderName, gui, object, scale }: initGuiProps) => {
+    const folder = gui.addFolder(folderName);
+
+    const pos = folder.addFolder('Position');
+
+    pos.add(object.position, 'x', -10, 10).name('pos-x').onChange(handleChange).listen();
+    pos.add(object.position, 'y', -10, 10).name('pos-y').onChange(handleChange).listen();
+    pos.add(object.position, 'z', -10, 10).name('pos-z').onChange(handleChange).listen();
+
+    const rotate = folder.addFolder('Rotation');
+
+    rotate.add(object.rotation, 'x', 0, Math.PI * 2).onChange(handleChange).listen();
+    rotate.add(object.rotation, 'y', 0, Math.PI * 2).onChange(handleChange).listen();
+    rotate.add(object.rotation, 'z', 0, Math.PI * 2).onChange(handleChange).listen();
+
+    if (scale) {
+        const scaleFolder = folder.addFolder('Scale');
+
+        scaleFolder.add(object.scale, 'x', 1, 10, 1).onChange(handleChange).listen();
+        scaleFolder.add(object.scale, 'y', 1, 10, 1).onChange(handleChange).listen();
+        scaleFolder.add(object.scale, 'z', 1, 10, 1).onChange(handleChange).listen();
+    }
+
+    folder.add(object, 'visible');
+};
+
 export default {
     onWindowResize,
     resetCam,
     generateSettings,
     setEditorToMain,
+    handleChange,
+    initGui
 };
+
