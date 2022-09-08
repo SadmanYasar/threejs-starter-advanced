@@ -15,4 +15,20 @@ export interface SettingsType {
         near: number;
         far: number;
     };
+    lights: {
+        hemlight: {
+            pos: {
+                x: number;
+                y: number;
+                z: number;
+            };
+        };
+        directionalLight: {
+            pos: {
+                x: number;
+                y: number;
+                z: number;
+            };
+        }
+    }
 }

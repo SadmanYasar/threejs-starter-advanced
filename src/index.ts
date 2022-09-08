@@ -60,10 +60,14 @@ contendor.appendChild(renderer.domElement);
 
 // lights
 const hemlight = new HemisphereLight(0xffffbb, 0x080820, 1);
+const hemlightPos = { ...Settings.lights.hemlight.pos };
+hemlight.position.set(hemlightPos.x, hemlightPos.y, hemlightPos.z);
 scene.add(hemlight);
 
 // White directional light at half intensity shining from the top.
 const directionalLight = new DirectionalLight(0xffffff, 0.5);
+const directionalLightPos = { ...Settings.lights.directionalLight.pos };
+directionalLight.position.set(directionalLightPos.x, directionalLightPos.y, directionalLightPos.z);
 scene.add(directionalLight);
 
 /*
@@ -148,18 +152,12 @@ if (Settings.debug === true) {
             });
             gridFolder.add(gridHelper, 'visible');
 
-            //const cubeFolder = gui.addFolder('Cube');
             helper.initGui({
                 folderName: 'Cube',
-                gui,
+                parentFolder: gui,
                 object: cube,
                 scale: true
             });
-            /* const cubeRotateFolder = cubeFolder.addFolder('Position');
-            cubeRotateFolder.add(cube.position, 'x', 0, 100).listen();
-            cubeRotateFolder.add(cube.position, 'y', 0, 100).listen();
-            cubeRotateFolder.add(cube.position, 'z', 0, 100).listen();
-            cubeRotateFolder.open(); */
 
             let camType = 'Editor';
             // Global helper functions for debugging
@@ -193,33 +191,48 @@ if (Settings.debug === true) {
                 generateSettings: () => {
                     console.log(JSON.stringify(helper.generateSettings({
                         debug: true,
-                        camera: editorCamera
+                        camera: editorCamera,
+                        light: {
+                            hemlight,
+                            directionalLight
+                        }
                     }), null, 4));
                 },
             };
 
             GLOBAL_HELPER.resetAll();
             helper.resetCam({ mainCamera, editorCamera, controls, transformControls });
-            const cameraFolder = gui.addFolder('Camera');
 
             const { handleChange } = helper;
-            cameraFolder.add(editorCamera.position, 'x', -100, 100, 1).name('pos-x').onChange(handleChange).listen();
-            cameraFolder.add(editorCamera.position, 'y', -100, 100, 1).name('pos-y').onChange(handleChange).listen();
-            cameraFolder.add(editorCamera.position, 'z', -100, 100, 1).name('pos-z').onChange(handleChange).listen();
+            const cameraFolder = helper.initGui({
+                folderName: 'Camera',
+                parentFolder: gui,
+                object: editorCamera,
+                helper: editorCameraHelper
+            });
             cameraFolder.add(editorCamera, 'fov', 60, 100).onChange(handleChange).listen();
             cameraFolder.add(editorCamera, 'near', 0, 1, 0.1).onChange(handleChange).listen();
             cameraFolder.add(editorCamera, 'far', 0, 500, 10).onChange(handleChange).listen();
-            cameraFolder.add(editorCameraHelper, 'visible');
             cameraFolder.add(GLOBAL_HELPER, 'resetAll').name('Reset All Camera (R)');
             cameraFolder.add(GLOBAL_HELPER, 'setEditorToMain').name('Set Editor Camera To Main (S)');
 
             cameraFolder.add(GLOBAL_HELPER, 'toggleCam').name(`Toggle Camera (T)`);
-            cameraFolder.open();
 
             const lightFolder = gui.addFolder('Lights');
 
-            lightFolder.addFolder('Hemisphere Light');
-            lightFolder.addFolder('Directional Light');
+            helper.initGui({
+                folderName: 'Hemisphere Light',
+                object: hemlight,
+                parentFolder: lightFolder,
+                helper: hemLightHelper,
+            });
+
+            helper.initGui({
+                folderName: 'Directional Light',
+                object: directionalLight,
+                parentFolder: lightFolder,
+                helper: directionalLightHelper
+            });
 
             gui.add(helperGroup, 'visible').name('Toggle Helpers (V)');
             gui.add(GLOBAL_HELPER, 'generateSettings').name(`Generate Settings (G)`);

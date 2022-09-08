@@ -11,6 +11,12 @@
         "esModuleInterop": true,
         "allowJs": true,
         "moduleResolution": "Node",
-        "resolveJsonModule": true
+        "resolveJsonModule": true,
+        "lib": [
+            "es5",
+            "es6",
+            "dom",
+            "dom.iterable"
+        ]
     }
 }

@@ -1,4 +1,4 @@
-import { DirectionalLight, HemisphereLight, Mesh, PerspectiveCamera, Vector3, WebGLRenderer } from "three";
+import { CameraHelper, DirectionalLight, DirectionalLightHelper, HemisphereLight, HemisphereLightHelper, Mesh, PerspectiveCamera, Vector3, WebGLRenderer } from "three";
 import { Settings, update } from "./defaults";
 import { SettingsType } from "../types/index";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
@@ -96,24 +96,34 @@ export const SettingManager: SettingManagerTypes= {
 interface generateSettingsProps {
     debug: boolean;
     camera: PerspectiveCamera;
-    //light: light
+    light: {
+        hemlight: HemisphereLight;
+        directionalLight: DirectionalLight;
+    };
 }
 const generateSettings = ({
     debug,
     camera,
+    light
 }: generateSettingsProps): SettingsType => {
-    const { x, y, z } = camera.position;
     const { fov, near, far } = camera;
+    const { hemlight, directionalLight } = light;
 
     return {
         debug,
         camera: {
-            pos: {
-                x, y, z
-            },
+            pos: {...camera.position},
             fov,
             near,
             far
+        },
+        lights: {
+            hemlight: {
+                pos: { ...hemlight.position }
+            },
+            directionalLight: {
+                pos: { ...directionalLight.position }
+            }
         }
     };
 };
@@ -122,12 +132,13 @@ const handleChange = () => update.needsUpdate = update.needsUpdate === false ? t
 
 interface initGuiProps {
     folderName: string;
-    gui: GUI;
+    parentFolder: GUI;
     object: PerspectiveCamera | HemisphereLight | DirectionalLight | Mesh;
+    helper?: CameraHelper | HemisphereLightHelper | DirectionalLightHelper;
     scale?: boolean;
 }
-const initGui = ({ folderName, gui, object, scale }: initGuiProps) => {
-    const folder = gui.addFolder(folderName);
+const initGui = ({ folderName, parentFolder, object, scale, helper }: initGuiProps): GUI => {
+    const folder = parentFolder.addFolder(folderName);
 
     const pos = folder.addFolder('Position');
 
@@ -149,7 +160,13 @@ const initGui = ({ folderName, gui, object, scale }: initGuiProps) => {
         scaleFolder.add(object.scale, 'z', 1, 10, 1).onChange(handleChange).listen();
     }
 
-    folder.add(object, 'visible');
+    if (helper) {
+        folder.add(helper, 'visible');
+    } else {
+        folder.add(object, 'visible');
+    }
+
+    return folder;
 };
 
 export default {

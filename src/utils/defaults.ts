@@ -20,5 +20,21 @@ export const Settings: SettingsType = {
         fov: 90,
         near: 0.8,
         far: 500,
+    },
+    lights: {
+        hemlight: {
+            pos: {
+                x: 0,
+                y: 1,
+                z: 0,
+            },
+        },
+        directionalLight: {
+            pos: {
+                x: 0,
+                y: 1,
+                z: 0,
+            },
+        }
     }
 };
